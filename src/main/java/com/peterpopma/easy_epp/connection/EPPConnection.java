@@ -8,47 +8,37 @@ public class EPPConnection {
 
 	private SocketUtil socketUtil = null;
 
-	public String readWrite(String msg){
-		try {
-			socketUtil.write(msg);
-			return socketUtil.read();
-		} catch (IOException e) {
-			log.debug("error reading/writing message", e);
-		}
-		return "error";
+	public String readWrite(String msg) throws IOException {
+		socketUtil.write(msg);
+		return socketUtil.read();
 	}
 
-	public boolean send(String msg){
+	public void send(String msg) throws IOException {
 		try {
 			socketUtil.write(msg);
 		} catch (IOException e) {
-			log.debug("error sending message", e);
-			return false;
+			log.info("error sending message", e);
 		}
-
-		return true;
 	}
 
-	public String connect(String server, int port) {
+	public void connect(String server, int port) throws IOException {
 		socketUtil = new SocketUtil();
 		try {
-			socketUtil.createSocket(server, port, 60000); // 60 sec timeout
-			return socketUtil.read();
-
+			socketUtil.createSocket(server, port, 6000); // 6 sec timeout
+			// read the <hello> message from the socket
+			socketUtil.read();
 		} catch (IOException e) {
 			log.info("error connecting", e);
 		}
-
-		return "error";
 	}
 
-	public void disConnect() {
+	public void disConnect()  throws IOException {
 		try {
 			if (socketUtil != null) {
 				socketUtil.closeSocket();
 			}
 		} catch (IOException e) {
-			log.debug("error disconnecting", e);
+			log.info("error disconnecting", e);
 		}
 	}
 

@@ -28,6 +28,7 @@ public class SocketUtil {
 
 		tcpSocket.connect(new InetSocketAddress(host, port), soTimeout);
 		tcpSocket.setSoTimeout(soTimeout);
+		tcpSocket.setKeepAlive(true);
 		in = new DataInputStream(new BufferedInputStream(tcpSocket
 				.getInputStream()));
 		out = new DataOutputStream(new BufferedOutputStream(tcpSocket

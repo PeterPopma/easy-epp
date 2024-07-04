@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: easy-epp
+server:
+  port: 8099

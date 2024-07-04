@@ -4,6 +4,8 @@ import com.peterpopma.easy_epp.connection.EPPConnection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+
 @Service
 @RequiredArgsConstructor
 public class EPPService {
@@ -11,8 +13,8 @@ public class EPPService {
     private String currentHostName;
     private int currentPort;
 
-    public EPPConnection getEPPConnection(String hostName, int port) {
-        if (!hostName.equals(currentHostName) || port!=currentPort)
+    public EPPConnection getEPPConnection(String hostName, int port, boolean reconnect) throws IOException {
+        if (reconnect || (!hostName.equals(currentHostName) || port!=currentPort))
         {
             currentHostName = hostName;
             currentPort = port;
@@ -21,5 +23,9 @@ public class EPPService {
         }
 
         return eppConnection;
+    }
+
+    public EPPConnection getEPPConnection(String hostName, int port) throws IOException {
+        return getEPPConnection(hostName, port, false);
     }
 }
