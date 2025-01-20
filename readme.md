@@ -3,8 +3,9 @@ Easy EPP - a simple EPP client
 Prerequisites: java 21+ installed
 Run with: java -jar bin/easy-epp.jar
 Usage: 
-  - Call with: http://localhost:8099/epp/[hostname]/[EPP port]
+  - Call with: http://localhost:8099/epp/[hostname]/[EPP port][?useSsl=true]
   - Put the EPP command in the body.
+  - If you add the useSsl=true option, a connection is made using ssl without certificate validation!
 
 Example:
 

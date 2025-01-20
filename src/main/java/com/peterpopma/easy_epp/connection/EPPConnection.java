@@ -21,10 +21,14 @@ public class EPPConnection {
 		}
 	}
 
-	public void connect(String server, int port) throws IOException {
+	public void connect(String server, int port, boolean useSSL) throws IOException {
 		socketUtil = new SocketUtil();
 		try {
-			socketUtil.createSocket(server, port, 6000); // 6 sec timeout
+			if ( useSSL) {
+				socketUtil.createSSLSocket(server, port, 6000); // 6 sec timeout
+			} else {
+				socketUtil.createSocket(server, port, 6000); // 6 sec timeout
+			}
 			// read the <hello> message from the socket
 			socketUtil.read();
 		} catch (IOException e) {

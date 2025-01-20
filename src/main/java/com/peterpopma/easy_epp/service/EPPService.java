@@ -13,19 +13,19 @@ public class EPPService {
     private String currentHostName;
     private int currentPort;
 
-    public EPPConnection getEPPConnection(String hostName, int port, boolean reconnect) throws IOException {
+    public EPPConnection getEPPConnection(String hostName, int port, boolean useSsl, boolean reconnect) throws IOException {
         if (reconnect || (!hostName.equals(currentHostName) || port!=currentPort))
         {
             currentHostName = hostName;
             currentPort = port;
             eppConnection.disConnect();
-            eppConnection.connect(hostName, port);
+            eppConnection.connect(hostName, port, useSsl);
         }
 
         return eppConnection;
     }
 
-    public EPPConnection getEPPConnection(String hostName, int port) throws IOException {
-        return getEPPConnection(hostName, port, false);
+    public EPPConnection getEPPConnection(String hostName, int port, boolean useSsl) throws IOException {
+        return getEPPConnection(hostName, port, useSsl, false);
     }
 }

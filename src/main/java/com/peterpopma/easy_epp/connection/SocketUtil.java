@@ -3,6 +3,7 @@ package com.peterpopma.easy_epp.connection;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 
+import javax.net.ssl.*;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -10,6 +11,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
 
 @Slf4j
 public class SocketUtil {
@@ -20,7 +23,7 @@ public class SocketUtil {
 	private DataInputStream in;
 	private DataOutputStream out;
 
-	@Value("epp.tcp.port")
+	@Value("${epp.tcp.port}")
 	private int eppTcpPort;
 
 	public void createSocket(String host, int port, int soTimeout)
@@ -44,22 +47,64 @@ public class SocketUtil {
 		this.createSocket(host, eppTcpPort, 0);
 	}
 
-	public boolean isSocketConected() {
-		return tcpSocket.isConnected();
+	public void createSSLSocket(String host, int port, int soTimeout) throws IOException {
+		// Set up the SSL context to bypass validation
+		try {
+			SSLContext sslContext = SSLContext.getInstance("TLS");
+			sslContext.init(null, new TrustManager[]{
+					new X509TrustManager() {
+						@Override
+						public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+
+						@Override
+						public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+
+						@Override
+						public X509Certificate[] getAcceptedIssuers() {
+							return null;
+						}
+					}
+			}, new java.security.SecureRandom());
+
+			// Create an SSLSocketFactory that uses the bypassing SSL context
+			SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+			SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(host, port);
+			sslSocket.setSoTimeout(soTimeout);
+			sslSocket.setKeepAlive(true);
+			this.tcpSocket = sslSocket;
+			in = new DataInputStream(new BufferedInputStream(tcpSocket.getInputStream()));
+			out = new DataOutputStream(new BufferedOutputStream(tcpSocket.getOutputStream(), BUF_SIZE));
+		} catch (Exception e) {
+			log.error("Failed to create a secure socket", e);
+			throw new IOException("Failed to create secure socket", e);
+		}
+	}
+
+	public void createSSLSocket(String host, int port) throws IOException {
+		this.createSSLSocket(host, port, 0);
+	}
+
+	public void createSSLSocket(String host) throws IOException {
+		this.createSSLSocket(host, eppTcpPort, 0);
+	}
+
+	public boolean isSocketConnected() {
+		return tcpSocket != null && tcpSocket.isConnected();
 	}
 
 	public boolean isSocketBound() {
-		return tcpSocket.isBound();
+		return tcpSocket != null && tcpSocket.isBound();
 	}
 
 	public boolean isSocketClosed() {
-		return tcpSocket.isClosed();
+		return tcpSocket == null || tcpSocket.isClosed();
 	}
 
 	public void closeSocket() throws IOException {
-		tcpSocket.getOutputStream().flush();
-		tcpSocket.getInputStream().close();
-		tcpSocket.close();
+		if (out != null) out.flush();
+		if (in != null) in.close();
+		if (out != null) out.close();
+		if (tcpSocket != null) tcpSocket.close();
 	}
 
 	public String read() throws IOException {
@@ -91,17 +136,13 @@ public class SocketUtil {
 		// the data unit.
 		//
 		String eppCommand = null;
-
 		int size = in.readInt() - 4;
 		if (size > 0) {
-			// read the xml
 			byte[] inputBuffer = new byte[size];
 			in.readFully(inputBuffer, 0, size);
-			eppCommand = new String(inputBuffer, "UTF-8");
+			eppCommand = new String(inputBuffer, StandardCharsets.UTF_8);
 		}
-
 		log.debug("receive: " + eppCommand);
-
 		return eppCommand;
 	}
 
@@ -109,8 +150,9 @@ public class SocketUtil {
 		// EPP Protocol requires the first 32 bits to hold the number of octets
 		// send.
 		log.debug("send: " + str);
-		out.writeInt(str.getBytes().length + 4);
-		out.write(str.getBytes());
+		byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
+		out.writeInt(bytes.length + 4);
+		out.write(bytes);
 		out.flush();
 	}
 }
